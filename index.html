@@ -102,6 +102,7 @@ cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;o
 <div class="modal" id="qm"><div class="box">
  <span class="badge" id="qBadge"></span>
  <div class="photo" id="qPhoto" onclick="pick(cur)"></div>
+ <div class="note syncst"></div>
  <div class="q-en" id="qEn"></div>
  <div class="q-ru" id="qRu"></div>
  <div class="ans" id="qAns"></div>
@@ -120,6 +121,13 @@ cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;o
 <div class="modal" id="sm"><div class="box" style="max-width:900px">
  <div class="q-en">📷 Photos / Фото к вопросам</div>
  <div class="q-ru">Нажмите на квадрат и выберите картинку с телефона или компьютера</div>
+ <div class="slot" style="margin-top:12px;text-align:left">
+  <b>🔑 Сохранять везде / Sync everywhere</b>
+  <div class="note" style="margin:4px 0 8px">Вставьте GitHub-токен один раз на этом устройстве — и каждое загруженное фото сразу сохранится в репозитории и появится на всех устройствах. Токен хранится только в этом браузере.</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="tok" type="password" placeholder="github_pat_…" style="flex:1;min-width:180px;padding:8px 12px;border-radius:999px;border:none;font:15px Fredoka">
+  <button class="c" onclick="saveTok()">Save / Сохранить</button></div>
+  <div class="note syncst" id="tokst"></div>
+ </div>
  <div class="setup-grid" id="setupGrid"></div>
  <div class="row"><button class="p" onclick="closeSetup()">✔ Done / Готово</button></div>
 </div></div>
@@ -163,7 +171,7 @@ const FN=["cartoon","group","singer"];
 let repoPhotos={};
 // Фото из папки photos/ репозитория: cartoon-1.jpg … singer-5.jpg (jpg, jpeg, png, webp)
 function loadRepoPhotos(){CATS.forEach((c,ci)=>c.items.forEach((it,i)=>{const k=id(ci,i),exts=["jpg","jpeg","png","webp","JPG","PNG"];let n=0;
- (function tryNext(){if(n>=exts.length)return;const url=`photos/${FN[ci]}-${i+1}.${exts[n++]}`,im=new Image();
+ (function tryNext(){if(n>=exts.length)return;const url=`photos/${FN[ci]}-${i+1}.${exts[n++]}?t=${Date.now()}`,im=new Image();
   im.onload=()=>{repoPhotos[k]=url;render();if(cur===k)qPhoto.innerHTML=photoHTML(k)};im.onerror=tryNext;im.src=url})()}))}
 const getPhoto=k=>photos[k]||repoPhotos[k];
 function save(){ls.set("kq_used",JSON.stringify(used));ls.set("kq_scores",JSON.stringify(scores))}
@@ -197,8 +205,19 @@ function pick(k){pickKey=k;file.value="";file.click()}
 file.onchange=()=>{const f=file.files[0];if(!f)return;const r=new FileReader();
  r.onload=e=>{const img=new Image();img.onload=()=>{const m=600,s=Math.min(1,m/Math.max(img.width,img.height));
   const cv=document.createElement("canvas");cv.width=img.width*s;cv.height=img.height*s;cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
-  photos[pickKey]=cv.toDataURL("image/jpeg",.8);ls.set("kq_photos",JSON.stringify(photos));
+  const du=cv.toDataURL("image/jpeg",.8);photos[pickKey]=du;ls.set("kq_photos",JSON.stringify(photos));syncPhoto(pickKey,du);
   if(cur===pickKey)qPhoto.innerHTML=photoHTML(pickKey);buildSetup();render()};img.src=e.target.result};r.readAsDataURL(f)};
+const REPO="sukrievmusa-hash/06";
+function setStatus(t){document.querySelectorAll(".syncst").forEach(e=>e.textContent=t)}
+function saveTok(){const v=tok.value.trim();if(!v){setStatus("Вставьте токен / Paste the token");return}ls.set("kq_token",v);tok.value="";setStatus("✅ Токен сохранён — фото будут сохраняться везде / Token saved")}
+async function syncPhoto(k,dataUrl){const t=ls.get("kq_token");if(!t){setStatus("📱 Сохранено только на этом устройстве (нет токена) / Saved on this device only");return}
+ const [ci,i]=k.split("-").map(Number),path=`photos/${FN[ci]}-${i+1}.jpg`,api=`https://api.github.com/repos/${REPO}/contents/${path}`,
+  h={Authorization:"Bearer "+t,Accept:"application/vnd.github+json"};
+ setStatus("⏳ Сохраняю в репозиторий… / Saving…");
+ try{let sha;const g=await fetch(api+"?ref=main",{headers:h,cache:"no-store"});if(g.ok)sha=(await g.json()).sha;
+  const r=await fetch(api,{method:"PUT",headers:h,body:JSON.stringify({message:"Add photo "+path,content:dataUrl.split(",")[1],sha,branch:"main"})});
+  setStatus(r.ok?"✅ Сохранено везде (на других устройствах появится через 1–2 мин) / Saved for all devices":"⚠️ Ошибка "+r.status+" — проверьте токен и права / Check the token")}
+ catch(e){setStatus("⚠️ Нет связи / No connection")}}
 function buildSetup(){const g=document.getElementById("setupGrid");g.innerHTML="";
  CATS.forEach((c,ci)=>c.items.forEach((it,i)=>{const k=id(ci,i),s=document.createElement("div");s.className="slot";
   s.innerHTML=`<b>${c.icon} ${c.pts}</b> · ${it[0]}<div class="photo">${getPhoto(k)?`<img src="${getPhoto(k)}">`:"＋ фото"}<div style="opacity:.6;font-size:11px">photos/${FN[ci]}-${i+1}.jpg</div></div>`;

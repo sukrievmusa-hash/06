@@ -80,6 +80,7 @@ cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;o
   </div>
   <h1>KARAOKE PARTY QUIZ</h1>
   <div class="sub">Караоке-вечеринка · Викторина 🇺🇸🇬🇧</div>
+  <div class="note">🎵 Tap anywhere to start the music / Коснитесь экрана — заиграет музыка</div>
  </header>
 
  <div class="teams">
@@ -235,6 +236,11 @@ function sfxOpen(){try{const t=ac().currentTime;[60,64,67,72].forEach((n,i)=>not
 function sfxReveal(){try{const t=ac().currentTime;[79,84].forEach((n,i)=>note(F(n),t+i*.12,.4,"sine",.25))}catch(e){}}
 function sfxWin(){try{const t=ac().currentTime;[72,76,79,84,79,84].forEach((n,i)=>note(F(n),t+i*.09,.3,"square",.12))}catch(e){}}
 function sfxNo(){try{const t=ac().currentTime;[55,50].forEach((n,i)=>note(F(n),t+i*.2,.35,"sawtooth",.12))}catch(e){}}
+// фоновая музыка стартует сама при первом касании страницы (браузер не даёт играть без касания)
+let userStopped=false;
+function autoStart(e){if(e.target&&e.target.id==="musicBtn")return;document.removeEventListener("pointerdown",autoStart,true);if(!musicOn&&!userStopped)toggleMusic()}
+document.addEventListener("pointerdown",autoStart,true);
+const _toggle=toggleMusic;toggleMusic=()=>{document.removeEventListener("pointerdown",autoStart,true);_toggle();userStopped=!musicOn};
 const _openQ=openQ;openQ=(a,b)=>{sfxOpen();_openQ(a,b)};
 const _award=award;award=t=>{t>=0?sfxWin():sfxNo();_award(t)};
 </script>

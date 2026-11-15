@@ -90,6 +90,7 @@ cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;o
  <div class="board" id="board"></div>
 
  <div class="tools">
+  <button class="g" id="musicBtn" onclick="toggleMusic()">🎵 Music ON / Музыка</button>
   <button class="c" onclick="openSetup()">📷 Add photos / Добавить фото</button>
   <button onclick="askReset()">🔄 New game / Новая игра</button>
  </div>
@@ -104,7 +105,7 @@ cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;o
  <div class="q-ru" id="qRu"></div>
  <div class="ans" id="qAns"></div>
  <div class="row">
-  <button class="g" onclick="document.getElementById('qAns').classList.add('on')">🎵 Show answer / Ответ</button>
+  <button class="g" onclick="document.getElementById('qAns').classList.add('on');sfxReveal()">🎵 Show answer / Ответ</button>
  </div>
  <div class="row">
   <button class="c" onclick="award(0)" id="b0"></button>
@@ -204,6 +205,38 @@ function buildSetup(){const g=document.getElementById("setupGrid");g.innerHTML="
 function openSetup(){buildSetup();show("sm")}
 function closeSetup(){hide("sm");render()}
 render();loadRepoPhotos();
+
+// ===== Музыка (своя мелодия, Web Audio) =====
+let AC=null,musicOn=false,timer=null,step=0,master=null;
+function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.35;master.connect(AC.destination)}if(AC.state==="suspended")AC.resume();return AC}
+function note(f,t,d,type="square",v=.12,dest){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(dest||master);o.start(t);o.stop(t+d+.05)}
+function drum(t,kind){const a=ac();if(kind==="k"){const o=a.createOscillator(),g=a.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.15);
+ g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(master);o.start(t);o.stop(t+.25)}
+ else{const b=a.createBuffer(1,a.sampleRate*.1,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const n=a.createBufferSource(),g=a.createGain(),hp=a.createBiquadFilter();hp.type="highpass";hp.frequency.value=kind==="h"?7000:1500;n.buffer=b;
+  g.gain.value=kind==="h"?.08:.25;n.connect(hp);hp.connect(g);g.connect(master);n.start(t)}}
+const F=n=>440*Math.pow(2,(n-69)/12);
+// аккорды C – Am – F – G, весёлый поп-ритм
+const CH=[[48,64,67,72],[45,64,69,72],[41,65,69,72],[43,62,67,71]];
+const MEL=[72,0,74,76, 79,0,76,74, 76,0,72,0, 69,72,74,0, 72,0,74,76, 77,0,76,74, 74,0,71,0, 67,71,74,0];
+const BPM=118,S=60/BPM/2;
+function tick(){const a=ac(),t=a.currentTime+.05,bar=Math.floor(step/8)%4,c=CH[bar],i=step%8;
+ if(i%2===0)note(F(c[0]),t,S*1.8,"triangle",.25);
+ if(i===2||i===6)c.slice(1).forEach(n=>note(F(n),t,S*1.5,"sawtooth",.03));
+ const m=MEL[step%32];if(m)note(F(m),t,S*.9,"square",.07);
+ if(i===0||i===4)drum(t,"k");if(i===2||i===6)drum(t,"s");drum(t,"h");
+ step++}
+function toggleMusic(){musicOn=!musicOn;const b=document.getElementById("musicBtn");
+ if(musicOn){ac();step=0;tick();timer=setInterval(tick,S*1000);b.textContent="⏸ Music OFF / Выкл."}
+ else{clearInterval(timer);b.textContent="🎵 Music ON / Музыка"}}
+// звуки: открыть вопрос, ответ, баллы
+function sfxOpen(){try{const t=ac().currentTime;[60,64,67,72].forEach((n,i)=>note(F(n),t+i*.07,.25,"triangle",.2))}catch(e){}}
+function sfxReveal(){try{const t=ac().currentTime;[79,84].forEach((n,i)=>note(F(n),t+i*.12,.4,"sine",.25))}catch(e){}}
+function sfxWin(){try{const t=ac().currentTime;[72,76,79,84,79,84].forEach((n,i)=>note(F(n),t+i*.09,.3,"square",.12))}catch(e){}}
+function sfxNo(){try{const t=ac().currentTime;[55,50].forEach((n,i)=>note(F(n),t+i*.2,.35,"sawtooth",.12))}catch(e){}}
+const _openQ=openQ;openQ=(a,b)=>{sfxOpen();_openQ(a,b)};
+const _award=award;award=t=>{t>=0?sfxWin():sfxNo();_award(t)};
 </script>
 </body>
 </html>

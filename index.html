@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Karaoke Party Quiz — Караоке-викторина</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#160b2e;--card:#2a1658;--pink:#ff3fa4;--cyan:#2ee6ff;--gold:#ffd23f;--txt:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:Fredoka,system-ui,sans-serif;color:var(--txt);min-height:100vh;
+background:radial-gradient(circle at 20% 0%,#4b1d8f 0,transparent 45%),radial-gradient(circle at 90% 100%,#8f1d6b 0,transparent 45%),var(--bg);overflow-x:hidden}
+.deco{position:fixed;pointer-events:none;opacity:.18;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:16px}
+header{text-align:center;padding:10px 0 6px}
+h1{margin:0;font-size:clamp(26px,5vw,48px);letter-spacing:1px;
+background:linear-gradient(90deg,var(--pink),var(--gold),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;
+filter:drop-shadow(0 0 12px rgba(255,63,164,.5))}
+.sub{opacity:.85;font-size:clamp(14px,2.5vw,18px);margin-top:4px}
+.hdr-icons{display:flex;justify-content:center;gap:14px;margin:6px 0}
+.hdr-icons svg{width:38px;height:38px;filter:drop-shadow(0 0 8px var(--cyan))}
+.teams{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+.team{background:rgba(255,255,255,.07);border:2px solid var(--cyan);border-radius:16px;padding:8px 14px;text-align:center;min-width:140px}
+.team:nth-child(2){border-color:var(--pink)}
+.team input{background:transparent;border:none;color:#fff;font:600 16px Fredoka;text-align:center;width:130px;outline:none}
+.score{font-size:30px;font-weight:700;color:var(--gold)}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.cat{background:linear-gradient(160deg,var(--pink),#9b2fff);border-radius:14px;padding:10px 6px;text-align:center;font-weight:700;font-size:clamp(12px,2.2vw,18px);min-height:78px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 0 18px rgba(255,63,164,.35)}
+.cat small{display:block;font-weight:400;opacity:.9;font-size:.82em}
+.cat .pts{color:var(--gold);font-size:1.15em}
+.tile{background:var(--card);border:2px solid rgba(46,230,255,.5);border-radius:14px;height:clamp(58px,11vw,86px);display:flex;align-items:center;justify-content:center;
+font-size:clamp(22px,4.5vw,36px);font-weight:700;color:var(--gold);cursor:pointer;transition:.2s;text-shadow:0 0 10px rgba(255,210,63,.6);position:relative}
+.tile:hover{transform:scale(1.04);border-color:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+.tile.used{opacity:.25;cursor:default;transform:none;box-shadow:none}
+.tile .cam{position:absolute;top:4px;right:6px;font-size:12px;opacity:.7}
+.tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:16px 0}
+button{font:600 15px Fredoka;border:none;border-radius:999px;padding:10px 18px;cursor:pointer;color:#fff;background:#3b2475}
+button.p{background:var(--pink)}button.c{background:#0aa5c2}button.g{background:var(--gold);color:#2a1658}
+.modal{position:fixed;inset:0;background:rgba(10,4,25,.88);display:none;align-items:center;justify-content:center;z-index:10;padding:12px}
+.modal.on{display:flex}
+.box{background:linear-gradient(170deg,#2c1760,#1b0d3c);border:2px solid var(--cyan);border-radius:22px;max-width:640px;width:100%;max-height:95vh;overflow:auto;padding:18px;text-align:center;box-shadow:0 0 40px rgba(46,230,255,.35)}
+.badge{display:inline-block;background:var(--pink);border-radius:999px;padding:4px 14px;font-weight:700}
+.photo{margin:14px auto;width:100%;max-width:420px;aspect-ratio:4/3;border:3px dashed rgba(255,255,255,.4);border-radius:16px;display:flex;align-items:center;justify-content:center;
+cursor:pointer;overflow:hidden;background:rgba(255,255,255,.05);font-size:15px;opacity:.95;padding:10px}
+.photo img{width:100%;height:100%;object-fit:contain}
+.q-en{font-size:clamp(20px,4vw,26px);font-weight:700}
+.q-ru{font-size:clamp(17px,3.4vw,22px);opacity:.85;margin-top:4px}
+.ans{display:none;margin-top:14px;background:rgba(255,210,63,.12);border:2px solid var(--gold);border-radius:14px;padding:12px;font-size:19px}
+.ans.on{display:block}
+.ans b{color:var(--gold)}
+.row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.setup-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px;text-align:left}
+.slot{background:rgba(255,255,255,.06);border-radius:12px;padding:8px;font-size:13px}
+.slot .photo{aspect-ratio:1;margin:6px 0;font-size:12px}
+.note{font-size:13px;opacity:.75;margin-top:8px}
+</style>
+</head>
+<body>
+<!-- decorative mics & clefs -->
+<svg class="deco" style="top:6%;left:2%;width:90px" viewBox="0 0 64 64"><use href="#mic"/></svg>
+<svg class="deco" style="top:40%;right:2%;width:80px" viewBox="0 0 64 64"><use href="#clef"/></svg>
+<svg class="deco" style="bottom:4%;left:4%;width:80px" viewBox="0 0 64 64"><use href="#clef"/></svg>
+<svg class="deco" style="bottom:10%;right:8%;width:70px" viewBox="0 0 64 64"><use href="#mic"/></svg>
+<svg width="0" height="0" style="position:absolute">
+ <defs>
+  <g id="mic"><rect x="22" y="4" width="20" height="30" rx="10" fill="#2ee6ff"/>
+   <path d="M16 26a16 16 0 0 0 32 0" fill="none" stroke="#ff3fa4" stroke-width="4" stroke-linecap="round"/>
+   <rect x="30" y="42" width="4" height="12" fill="#ff3fa4"/><rect x="20" y="54" width="24" height="5" rx="2.5" fill="#ff3fa4"/>
+   <path d="M26 12h12M26 18h12M26 24h12" stroke="#160b2e" stroke-width="2"/></g>
+  <g id="clef"><text x="32" y="56" font-size="62" text-anchor="middle" fill="#ffd23f" font-family="serif">𝄞</text></g>
+ </defs>
+</svg>
+
+<div class="wrap">
+ <header>
+  <div class="hdr-icons">
+   <svg viewBox="0 0 64 64"><use href="#mic"/></svg>
+   <svg viewBox="0 0 64 64"><use href="#clef"/></svg>
+   <svg viewBox="0 0 64 64"><use href="#mic"/></svg>
+  </div>
+  <h1>KARAOKE PARTY QUIZ</h1>
+  <div class="sub">Караоке-вечеринка · Викторина 🇺🇸🇬🇧</div>
+ </header>
+
+ <div class="teams">
+  <div class="team"><input id="n0" value="Team 1 / Команда 1"><div class="score" id="s0">0</div></div>
+  <div class="team"><input id="n1" value="Team 2 / Команда 2"><div class="score" id="s1">0</div></div>
+ </div>
+
+ <div class="board" id="board"></div>
+
+ <div class="tools">
+  <button class="c" onclick="openSetup()">📷 Add photos / Добавить фото</button>
+  <button onclick="askReset()">🔄 New game / Новая игра</button>
+ </div>
+ <div class="note" style="text-align:center">Перед уроком нажмите «Добавить фото» и загрузите картинку к каждому вопросу — фото сохранятся в этом браузере.</div>
+</div>
+
+<!-- question modal -->
+<div class="modal" id="qm"><div class="box">
+ <span class="badge" id="qBadge"></span>
+ <div class="photo" id="qPhoto" onclick="pick(cur)"></div>
+ <div class="q-en" id="qEn"></div>
+ <div class="q-ru" id="qRu"></div>
+ <div class="ans" id="qAns"></div>
+ <div class="row">
+  <button class="g" onclick="document.getElementById('qAns').classList.add('on')">🎵 Show answer / Ответ</button>
+ </div>
+ <div class="row">
+  <button class="c" onclick="award(0)" id="b0"></button>
+  <button class="p" onclick="award(1)" id="b1"></button>
+  <button onclick="award(-1)">❌ Nobody / Никто</button>
+ </div>
+ <div class="row"><button onclick="closeQ()">✖ Close / Закрыть</button></div>
+</div></div>
+
+<!-- setup modal -->
+<div class="modal" id="sm"><div class="box" style="max-width:900px">
+ <div class="q-en">📷 Photos / Фото к вопросам</div>
+ <div class="q-ru">Нажмите на квадрат и выберите картинку с телефона или компьютера</div>
+ <div class="setup-grid" id="setupGrid"></div>
+ <div class="row"><button class="p" onclick="closeSetup()">✔ Done / Готово</button></div>
+</div></div>
+
+<!-- confirm modal -->
+<div class="modal" id="cm"><div class="box" style="max-width:380px">
+ <div class="q-en">New game?</div><div class="q-ru">Начать заново? Очки обнулятся, фото останутся.</div>
+ <div class="row"><button class="p" onclick="doReset()">Yes / Да</button><button onclick="hide('cm')">No / Нет</button></div>
+</div></div>
+
+<input type="file" id="file" accept="image/*" style="display:none">
+
+<script>
+const CATS=[
+ {en:"Cartoons",ru:"Мультики",icon:"🎬",pts:50,qEn:"What cartoon is this?",qRu:"Что это за мультфильм?",items:[
+  ["Tom and Jerry","Том и Джерри","USA 🇺🇸","Tom is a cat, Jerry is a mouse / Том — кот, Джерри — мышонок"],
+  ["Peppa Pig","Свинка Пеппа","UK 🇬🇧","She loves jumping in muddy puddles / Любит прыгать по лужам"],
+  ["Mickey Mouse","Микки Маус","USA 🇺🇸","Created by Walt Disney / Создал Уолт Дисней"],
+  ["Winnie the Pooh","Винни-Пух","UK / USA 🇬🇧🇺🇸","He loves honey / Он любит мёд"],
+  ["SpongeBob SquarePants","Губка Боб Квадратные Штаны","USA 🇺🇸","Lives in a pineapple in Bikini Bottom / Живёт в ананасе в Бикини Боттом"]]},
+ {en:"US Pop Groups",ru:"Поп-группы США",icon:"🎤",pts:100,qEn:"What is the name of this American pop group?",qRu:"Как называется эта американская поп-группа?",items:[
+  ["Backstreet Boys","Бэкстрит Бойз","USA 🇺🇸","Famous song / Песня: «I Want It That Way»"],
+  ["*NSYNC","Эн Синк","USA 🇺🇸","Famous song / Песня: «Bye Bye Bye»"],
+  ["Jonas Brothers","Джонас Бразерс","USA 🇺🇸","Famous song / Песня: «Sucker»"],
+  ["Maroon 5","Марун Файв","USA 🇺🇸","Famous song / Песня: «Sugar»"],
+  ["Fifth Harmony","Фифт Хармони","USA 🇺🇸","Famous song / Песня: «Work from Home»"]]},
+ {en:"Singers",ru:"Исполнители",icon:"⭐",pts:200,qEn:"Who is this singer?",qRu:"Как зовут этого исполнителя?",items:[
+  ["Michael Jackson","Майкл Джексон","USA 🇺🇸","Famous song / Песня: «Billie Jean»"],
+  ["Taylor Swift","Тейлор Свифт","USA 🇺🇸","Famous song / Песня: «Shake It Off»"],
+  ["Ed Sheeran","Эд Ширан","UK 🇬🇧","Famous song / Песня: «Shape of You»"],
+  ["Adele","Адель","UK 🇬🇧","Famous song / Песня: «Hello»"],
+  ["Billie Eilish","Билли Айлиш","USA 🇺🇸","Famous song / Песня: «Bad Guy»"]]}
+];
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}};
+let photos={},used={},scores=[0,0],cur=null;
+try{photos=JSON.parse(ls.get("kq_photos")||"{}")}catch(e){}
+try{used=JSON.parse(ls.get("kq_used")||"{}");scores=JSON.parse(ls.get("kq_scores")||"[0,0]")}catch(e){}
+["n0","n1"].forEach((id,i)=>{const el=document.getElementById(id);const v=ls.get("kq_"+id);if(v)el.value=v;el.oninput=()=>{ls.set("kq_"+id,el.value);}});
+const id=(c,i)=>c+"-"+i;
+const FN=["cartoon","group","singer"];
+let repoPhotos={};
+// Фото из папки photos/ репозитория: cartoon-1.jpg … singer-5.jpg (jpg, jpeg, png, webp)
+function loadRepoPhotos(){CATS.forEach((c,ci)=>c.items.forEach((it,i)=>{const k=id(ci,i),exts=["jpg","jpeg","png","webp","JPG","PNG"];let n=0;
+ (function tryNext(){if(n>=exts.length)return;const url=`photos/${FN[ci]}-${i+1}.${exts[n++]}`,im=new Image();
+  im.onload=()=>{repoPhotos[k]=url;render();if(cur===k)qPhoto.innerHTML=photoHTML(k)};im.onerror=tryNext;im.src=url})()}))}
+const getPhoto=k=>photos[k]||repoPhotos[k];
+function save(){ls.set("kq_used",JSON.stringify(used));ls.set("kq_scores",JSON.stringify(scores))}
+function render(){
+ const b=document.getElementById("board");b.innerHTML="";
+ CATS.forEach(c=>{const d=document.createElement("div");d.className="cat";
+  d.innerHTML=`${c.icon} ${c.en}<small>${c.ru}</small><span class="pts">${c.pts}</span>`;b.appendChild(d)});
+ for(let i=0;i<5;i++)CATS.forEach((c,ci)=>{const k=id(ci,i),t=document.createElement("div");
+  t.className="tile"+(used[k]?" used":"");t.innerHTML=(used[k]?"🎵":c.pts)+(getPhoto(k)?'<span class="cam">📷</span>':"");
+  t.onclick=()=>{if(!used[k])openQ(ci,i)};b.appendChild(t)});
+ scores.forEach((s,i)=>document.getElementById("s"+i).textContent=s);
+}
+function photoHTML(k){return getPhoto(k)?`<img src="${getPhoto(k)}" alt="">`:"📷 Tap to add a photo<br>Нажмите, чтобы добавить фото"}
+function openQ(ci,i){
+ const c=CATS[ci],it=c.items[i];cur=id(ci,i);
+ qBadge.textContent=`${c.icon} ${c.en} / ${c.ru} · ${c.pts}`;
+ qPhoto.innerHTML=photoHTML(cur);qEn.textContent=c.qEn;qRu.textContent=c.qRu;
+ qAns.innerHTML=`<b>${it[0]}</b> / ${it[1]} · ${it[2]}<br><span style="font-size:16px">${it[3]}</span>`;
+ qAns.classList.remove("on");
+ b0.textContent=`+${c.pts} ${n0.value}`;b1.textContent=`+${c.pts} ${n1.value}`;
+ show("qm");
+}
+function award(t){const ci=+cur.split("-")[0];if(t>=0)scores[t]+=CATS[ci].pts;used[cur]=1;save();closeQ()}
+function closeQ(){hide("qm");render()}
+function show(m){document.getElementById(m).classList.add("on")}
+function hide(m){document.getElementById(m).classList.remove("on")}
+function askReset(){show("cm")}
+function doReset(){used={};scores=[0,0];save();hide("cm");render()}
+let pickKey=null;
+function pick(k){pickKey=k;file.value="";file.click()}
+file.onchange=()=>{const f=file.files[0];if(!f)return;const r=new FileReader();
+ r.onload=e=>{const img=new Image();img.onload=()=>{const m=600,s=Math.min(1,m/Math.max(img.width,img.height));
+  const cv=document.createElement("canvas");cv.width=img.width*s;cv.height=img.height*s;cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+  photos[pickKey]=cv.toDataURL("image/jpeg",.8);ls.set("kq_photos",JSON.stringify(photos));
+  if(cur===pickKey)qPhoto.innerHTML=photoHTML(pickKey);buildSetup();render()};img.src=e.target.result};r.readAsDataURL(f)};
+function buildSetup(){const g=document.getElementById("setupGrid");g.innerHTML="";
+ CATS.forEach((c,ci)=>c.items.forEach((it,i)=>{const k=id(ci,i),s=document.createElement("div");s.className="slot";
+  s.innerHTML=`<b>${c.icon} ${c.pts}</b> · ${it[0]}<div class="photo">${getPhoto(k)?`<img src="${getPhoto(k)}">`:"＋ фото"}<div style="opacity:.6;font-size:11px">photos/${FN[ci]}-${i+1}.jpg</div></div>`;
+  s.querySelector(".photo").onclick=()=>pick(k);g.appendChild(s)}))}
+function openSetup(){buildSetup();show("sm")}
+function closeSetup(){hide("sm");render()}
+render();loadRepoPhotos();
+</script>
+</body>
+</html>

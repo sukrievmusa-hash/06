@@ -17,7 +17,7 @@
 | singer-1.jpg | Michael Jackson |
 | singer-2.jpg | Taylor Swift |
 | singer-3.jpg | Ed Sheeran |
-| singer-4.jpg | Adele |
-| singer-5.jpg | Billie Eilish |
+| singer-4.jpg | Madonna |
+| singer-5.jpg | Britney Spears |
 
 Как загрузить с телефона: откройте папку `photos` на GitHub → **Add file → Upload files** → выберите картинку (заранее переименуйте её, например в `cartoon-1.jpg`) → **Commit changes**.

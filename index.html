@@ -207,35 +207,52 @@ function openSetup(){buildSetup();show("sm")}
 function closeSetup(){hide("sm");render()}
 render();loadRepoPhotos();
 
-// ===== Музыка (своя мелодия, Web Audio) =====
-let AC=null,musicOn=false,timer=null,step=0,master=null;
-function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=.35;master.connect(AC.destination)}if(AC.state==="suspended")AC.resume();return AC}
-function note(f,t,d,type="square",v=.12,dest){const a=ac(),o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.value=f;
- g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g);g.connect(dest||master);o.start(t);o.stop(t+d+.05)}
-function drum(t,kind){const a=ac();if(kind==="k"){const o=a.createOscillator(),g=a.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.15);
- g.gain.setValueAtTime(.5,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.connect(g);g.connect(master);o.start(t);o.stop(t+.25)}
- else{const b=a.createBuffer(1,a.sampleRate*.1,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
-  const n=a.createBufferSource(),g=a.createGain(),hp=a.createBiquadFilter();hp.type="highpass";hp.frequency.value=kind==="h"?7000:1500;n.buffer=b;
-  g.gain.value=kind==="h"?.08:.25;n.connect(hp);hp.connect(g);g.connect(master);n.start(t)}}
+// ===== Музыка: взрослый поп/синтвейв, как в караоке-клубе =====
+const BPM=104,S=60/BPM/2;
+let AC=null,musicOn=false,timer=null,step=0,master=null,fx=null;
+function ac(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();
+ const comp=AC.createDynamicsCompressor();comp.connect(AC.destination);
+ master=AC.createGain();master.gain.value=.55;master.connect(comp);
+ const d=AC.createDelay(1);d.delayTime.value=S*3;const fb=AC.createGain();fb.gain.value=.38;
+ const lp=AC.createBiquadFilter();lp.type="lowpass";lp.frequency.value=2200;
+ fx=AC.createGain();fx.connect(d);d.connect(lp);lp.connect(fb);fb.connect(d);lp.connect(master)}
+ if(AC.state==="suspended")AC.resume();return AC}
+function voice(f,t,d,type,v,cut,atk,send){const a=ac(),o=a.createOscillator(),g=a.createGain(),lp=a.createBiquadFilter();
+ o.type=type;o.frequency.value=f;lp.type="lowpass";lp.frequency.value=cut;
+ g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+atk);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+ o.connect(lp);lp.connect(g);g.connect(master);
+ if(send){const sg=a.createGain();sg.gain.value=send;g.connect(sg);sg.connect(fx)}
+ o.start(t);o.stop(t+d+.05)}
+function kick(t){const a=ac(),o=a.createOscillator(),g=a.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(42,t+.12);
+ g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.connect(g);g.connect(master);o.start(t);o.stop(t+.3)}
+function noise(t,len,freq,vol,q){const a=ac(),n=Math.floor(a.sampleRate*len),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);
+ for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2);
+ const src=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();src.buffer=b;f.type=q?"bandpass":"highpass";f.frequency.value=freq;
+ g.gain.value=vol;src.connect(f);f.connect(g);g.connect(master);src.start(t)}
 const F=n=>440*Math.pow(2,(n-69)/12);
-// аккорды C – Am – F – G, весёлый поп-ритм
-const CH=[[48,64,67,72],[45,64,69,72],[41,65,69,72],[43,62,67,71]];
-const MEL=[72,0,74,76, 79,0,76,74, 76,0,72,0, 69,72,74,0, 72,0,74,76, 77,0,76,74, 74,0,71,0, 67,71,74,0];
-const BPM=118,S=60/BPM/2;
-function tick(){const a=ac(),t=a.currentTime+.05,bar=Math.floor(step/8)%4,c=CH[bar],i=step%8;
- if(i%2===0)note(F(c[0]),t,S*1.8,"triangle",.25);
- if(i===2||i===6)c.slice(1).forEach(n=>note(F(n),t,S*1.5,"sawtooth",.03));
- const m=MEL[step%32];if(m)note(F(m),t,S*.9,"square",.07);
- if(i===0||i===4)drum(t,"k");if(i===2||i===6)drum(t,"s");drum(t,"h");
+// Am – F – C – G
+const BASS=[45,41,48,43];
+const PAD=[[57,60,64],[53,57,60],[55,60,64],[55,59,62]];
+const ARP=[[69,72,76,81],[65,69,72,77],[67,72,76,79],[67,71,74,79]];
+const ARPP=[0,1,2,1,3,2,1,2];
+const LEAD=[[81,0,0,79,0,76,0,0],[77,0,0,76,0,72,0,0],[79,0,0,76,0,72,0,0],[74,0,0,76,0,79,0,0]];
+function tick(){const a=ac(),t=a.currentTime+.06,bar=Math.floor(step/8)%4,i=step%8,lap=Math.floor(step/32)%2;
+ if(i===0)PAD[bar].forEach(n=>{voice(F(n),t,S*8,"sawtooth",.028,1100,.25);voice(F(n)*1.006,t,S*8,"sawtooth",.028,1100,.25)});
+ if(i===0||i===3||i===5)voice(F(BASS[bar]),t,S*1.6,"sawtooth",.2,380,.01);
+ voice(F(ARP[bar][ARPP[i]]),t,S*1.8,"triangle",.1,3200,.005,.45);
+ if(lap===1&&LEAD[bar][i])voice(F(LEAD[bar][i]),t,S*2.2,"sine",.13,4000,.02,.5);
+ if(i%2===0)kick(t);
+ if(i===2||i===6)noise(t,.18,1800,.28,true);
+ if(i%2===1)noise(t,.05,8000,.07,false);
  step++}
 function toggleMusic(){musicOn=!musicOn;const b=document.getElementById("musicBtn");
  if(musicOn){ac();step=0;tick();timer=setInterval(tick,S*1000);b.textContent="⏸ Music OFF / Выкл."}
  else{clearInterval(timer);b.textContent="🎵 Music ON / Музыка"}}
-// звуки: открыть вопрос, ответ, баллы
-function sfxOpen(){try{const t=ac().currentTime;[60,64,67,72].forEach((n,i)=>note(F(n),t+i*.07,.25,"triangle",.2))}catch(e){}}
-function sfxReveal(){try{const t=ac().currentTime;[79,84].forEach((n,i)=>note(F(n),t+i*.12,.4,"sine",.25))}catch(e){}}
-function sfxWin(){try{const t=ac().currentTime;[72,76,79,84,79,84].forEach((n,i)=>note(F(n),t+i*.09,.3,"square",.12))}catch(e){}}
-function sfxNo(){try{const t=ac().currentTime;[55,50].forEach((n,i)=>note(F(n),t+i*.2,.35,"sawtooth",.12))}catch(e){}}
+// мягкие звуки интерфейса
+function sfxOpen(){try{const t=ac().currentTime;[64,71].forEach((n,i)=>voice(F(n),t+i*.09,.35,"sine",.18,3000,.01,.3))}catch(e){}}
+function sfxReveal(){try{const t=ac().currentTime;[76,83].forEach((n,i)=>voice(F(n),t+i*.1,.6,"sine",.2,5000,.01,.5))}catch(e){}}
+function sfxWin(){try{const t=ac().currentTime;[67,71,74,79].forEach((n,i)=>voice(F(n),t+i*.08,.5,"triangle",.16,3500,.01,.4))}catch(e){}}
+function sfxNo(){try{const t=ac().currentTime;[52,47].forEach((n,i)=>voice(F(n),t+i*.2,.5,"triangle",.2,900,.01))}catch(e){}}
 // фоновая музыка стартует сама при первом касании страницы (браузер не даёт играть без касания)
 let userStopped=false;
 function autoStart(e){if(e.target&&e.target.id==="musicBtn")return;document.removeEventListener("pointerdown",autoStart,true);if(!musicOn&&!userStopped)toggleMusic()}
